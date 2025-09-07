@@ -1,0 +1,45 @@
+# https://caddyserver.com/docs/caddyfile
+
+# You can define special blocks called snippets by giving them a name
+# surrounded in parentheses:
+
+(ecm) {
+    log {
+        output file /srv/ecm/var/log/caddy/service.log {
+            roll_size 1gb
+            roll_keep 5
+            roll_keep_for 120h
+        }
+    }
+
+
+    # respond "Yahaha! You found {args[0]}!"
+
+    # The login: from old to new
+        
+    redir /ecm/login* /login/
+
+    # The old SPA has a bunch
+    
+    rewrite /report/* /old-spa/dist/index.html
+    rewrite /diary/* /old-spa/dist{uri}
+    rewrite /assets/* /old-spa/dist{uri}
+    rewrite /rpc/* {uri}.ss
+
+    # reverse_proxy /ecm/login* localhost:8080
+    reverse_proxy /ecm/* localhost:4242
+    reverse_proxy * localhost:8080
+
+    
+}
+
+:80 {
+    import ecm "on Port 80"
+}
+
+:443 {
+    tls internal {
+        on_demand
+    }
+    import ecm "On Port 443"
+}

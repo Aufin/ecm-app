@@ -1,0 +1,17 @@
+
+{
+    "database" : { "master" : { "host" : "db-ecm",
+				"port" : 5432,
+				"database" : "maxclaims",
+				"username" : "maxclaims",
+				"password" : "y3am2e!!"
+			      }
+		 },
+		   
+    "attachment": { "directory": "/srv/ecm/mnt/azure/attachments",
+		    "mirror" : "/ecm/mnt/auto/attachment-mirror",
+		    "backup" : "/ecm/mnt/auto/attachment-backup"
+		  },
+    "archive": { "directory" : "/srv/ecm/mnt/azure/archive"},
+    "admin-email" : "me@drewc.ca"
+}
