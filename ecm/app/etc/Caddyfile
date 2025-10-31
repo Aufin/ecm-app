@@ -22,6 +22,8 @@
 	# The login: from old to new
 
 	redir /ecm/login* /login/
+	redir / /ecm/index
+	redir /ecm/diary* /diary/
 
 	handle_path /diary/* {
 		reverse_proxy localhost:8080
