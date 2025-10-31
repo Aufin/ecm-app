@@ -75,8 +75,11 @@ COPY --from=gerbil /opt/gerbil /opt/gerbil
 COPY --from=lisp /usr/local/bin/ecm-application /usr/local/bin
 COPY --from=lisp /usr/local/bin/detachtty /usr/local/bin
 COPY --from=lisp /usr/local/bin/attachtty /usr/local/bin
+COPY --from=lisp /root/.sbclrc /root/.sbclrc
 
-RUN apk add nss-tools jq rlwrap
+RUN apk add nss-tools jq rlwrap openssh openrc
+
+RUN rc-update add sshd
 
 COPY ecm /srv/ecm
 # RUN ls /srv
@@ -94,6 +97,10 @@ RUN ls -l /root/.ecm
 ENV GERBIL_PATH="/srv/ecm/app/.gerbil"
 ENV PATH=/opt/gerbil/bin:"${PATH}"
 RUN cd /srv/ecm/app && ./build.ss
+
+# This is for interaction with the Cruncy DB Pods
+RUN mkdir /tablespaces
+RUN ln -s /mnt/shared/data /tablespaces/shared
 
 EXPOSE 80/tcp
 EXPOSE 443/tcp
