@@ -228,3 +228,17 @@ Gerbil comes first.
 
 
 #+end_src
+
+
+* Development Meta
+
+ECM is composed of a few repos and this one, =ecm-minimal= is a
+monorepo for the application portion.
+
+#+begin_src sh
+  git mv ecm/app/ ./new-app
+  
+
+#+end_src
+
+

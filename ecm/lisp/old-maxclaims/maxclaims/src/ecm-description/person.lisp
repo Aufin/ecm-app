@@ -415,7 +415,7 @@
 	 (:desc policy-id))
 	,limit , (typecase offset
 		   (symbol (funcall offset))
-		   (T offset)))))))
+		   (T offset))))))) 
 
 (defmethod object-attribute-value 
     ((person person) 
