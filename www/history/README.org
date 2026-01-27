@@ -1,0 +1,31 @@
+#+TITLE: History: Claim Movement + friends
+
+
+
+
+
+* HTML Bundler Plugin
+
+Webpack works for building JavaScript bundles, but does not support
+neither the HTML nor the CSS files out of the box.  To bundle compiled
+JavaScript and CSS with HTML we can use the powerful
+html-bundler-webpack-plugin.
+
+https://dev.to/webdiscus/using-html-bundler-plugin-for-webpack-to-generate-html-files-30gd
+
+
+#+begin_src sh
+  pnpm init
+  sed -i 's/"history"/"@aufin\/ecm-history"/g' package.json
+  pnpm add -D html-bundler-webpack-plugin
+  pnpm add -D webpack webpack-cli webpack-dev-server
+
+  pnpm add ~/src/spinalize/src/materialize
+  pnpm add ~/src/spinalize/src/underscore
+  pnpm add ~/src/spinalize/src/zepto
+  pnpm add ~/src/spinalize/src/backbone
+  pnpm add ~/src/spinalize/src/widget
+  pnpm add ~/src/spinalize/src/element
+  pnpm add ~/src/spinalize/src/table
+#+end_src
+

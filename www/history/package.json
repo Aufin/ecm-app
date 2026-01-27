@@ -1,0 +1,28 @@
+{
+  "name": "@aufin/ecm-history",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "touch src/index.js ; rm -v index.html ;webpack --config webpack.ecm.js ; webpack --config webpack.bundle.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.20.0",
+  "devDependencies": {
+    "html-bundler-webpack-plugin": "^4.22.0",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.3"
+  },
+  "dependencies": {
+    "@spinal/backbone": "link:/home/ecm/src/spinalize/src/backbone",
+    "@spinal/element": "link:/home/ecm/src/spinalize/src/element",
+    "@spinal/materialize": "link:/home/ecm/src/spinalize/src/materialize",
+    "@spinal/table": "link:/home/ecm/src/spinalize/src/table",
+    "@spinal/underscore": "link:/home/ecm/src/spinalize/src/underscore",
+    "@spinal/widget": "link:/home/ecm/src/spinalize/src/widget",
+    "@spinal/zepto": "link:/home/ecm/src/spinalize/src/zepto"
+  }
+}

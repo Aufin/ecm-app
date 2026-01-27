@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  	<link rel="stylesheet" href="../css/materialize.css">
+	<script src="../js/underscore.spinal.js" charset="UTF-8"> </script>
+	<script src="../js/zepto.spinal.js" charset="UTF-8"> </script>
+	<script src="../js/materialize.spinal.js" charset="UTF-8"> </script>
+	<script src="../js/backbone.spinal.js" charset="UTF-8"> </script>
+	<script src="../js/widget.spinal.js" charset="UTF-8"> </script>
+	<script src="../js/element.spinal.js"charset="UTF-8"> </script>
+	<script src="../js/table.spinal.js"charset="UTF-8"> </script>
+	<script src="../js/history.ecm.js"charset="UTF-8"> </script>
+
+	<title>ECM History</title>
+	<script>
+	  const claimMovementView = new ECM.History.ClaimMovementView()
+	  S.$(function () {
+		document.querySelector('[data-cm]').append(claimMovementView.el)
+	  })
+		
+	</script>
+  </head>
+  
+  <body>
+	<nav class="nav navbar blue darken-4">
+	  <div class="nav-wrapper">
+		<a href="/" class="brand-logo grey-text text-lighten-2">&nbsp;ECM&nbsp;</a>
+	  </div>
+	</nav>
+	<div class="container">
+	  <h1> Claim Movement History </h1>
+	  <div data-cm></div>
+	</div>
+  </body>
+</html>
+
