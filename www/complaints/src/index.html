@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  	<link rel="stylesheet" href="@spinal/materialize/style.css">
+	<script src="@spinal/underscore" charset="UTF-8"> </script>
+	<script src="@spinal/zepto" charset="UTF-8"> </script>
+	<script src="@spinal/materialize" charset="UTF-8"> </script>
+	<script src="@spinal/backbone" charset="UTF-8"> </script>
+	<script src="@spinal/widget" charset="UTF-8"> </script>
+	<script src="@spinal/element"charset="UTF-8"> </script>
+	<script src="@spinal/table"charset="UTF-8"> </script>
+	<script src="@dist/complaints.ecm.js"charset="UTF-8"> </script>
+
+	<title>ECM Complaints</title>
+	<script>
+	  
+	  const complaintsTable = new ECM.Complaint.ComplaintsTable({
+	  })
+	   S.$(function () {
+	   	 document.querySelector('[data-cm]').append(complaintsTable.el)
+		 complaintsTable.initPromise.then(ct => complaintsTable.render())
+	   })
+		
+	</script>
+  </head>
+  
+  <body>
+	<nav class="nav navbar blue darken-4">
+	  <div class="nav-wrapper">
+		<a href="/" class="brand-logo grey-text text-lighten-2">&nbsp;ECM&nbsp;</a>
+	  </div>
+	</nav>
+	<div class="container">
+	  <h1> Complaints <button style="font-size: 33%" onclick="complaintsTable.csv.download()"> Download CSV </button> </h1>
+	  <div data-cm></div>
+	</div>
+  </body>
+</html>
+

@@ -7,22 +7,17 @@
 
 (export handle-request)
 
-(def (fetch-movements claim-id)
+(def (fetch-complaints)
   (def (esql q . args)
 	(apply ecm-sql sql-eval-query q args))
   (car (esql "SELECT COALESCE(js, '[]'::json) FROM (
-      SELECT json_agg(cm ORDER BY time) AS js
-      FROM claim_movement($1::int) cm) cmjs" claim-id)))
+      SELECT json_agg(cm ORDER BY date DESC) AS js
+      FROM complaint cm) cmjs")))
 
 (def handle-request
   (user-request-handler
    (lambda (req res)
-
-     (def body (http-request-body req))
-     (def json (and body (string->json-object (utf8->string body))))
-	 (def claim-id (and json (hash-get json "claim_id")))
-     (def moves (fetch-movements claim-id))
-
+     (def out (fetch-complaints))
      (http-response-write
       res 200 '(("Content-Type" . "application/json"))
-	  moves))))
+	  out))))
