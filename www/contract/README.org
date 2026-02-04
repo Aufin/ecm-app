@@ -1,0 +1,119 @@
+#+TITLE: Contracts: A big deal!
+
+
+#+PROPERTY: header-args:sql :engine postgres :cmdline "\"sslmode=disable host=localhost user=maxclaims port=5432 dbname=maxclaims\""
+
+* Loss Fund
+
+ *RFP*:
+  - What I am looking for is a real time balance on the loss fund that
+    is associated with the contract set up on ECM
+  - so each customer / Syndicate provides us a loss fund when we open
+    a contract
+  - we would tie it to the payments made, trigger would be payments
+
+    #+begin_src sql :tangle contract.sql
+        ALTER TABLE IF EXISTS contract ADD COLUMN IF NOT EXISTS loss_fund NUMERIC(10,2);
+
+        CREATE OR REPLACE FUNCTION contract_loss_fund_balance(contract_id int)
+        RETURNS numeric(10,2) LANGUAGE SQL AS $$
+        SELECT (contract).loss_fund - sum(amount)
+          FROM claim_view LEFT JOIN claim_transaction ct USING (claim_id)
+          WHERE (contract).contract_id = $1 AND (contract).loss_fund IS NOT NULL
+          AND claim_transaction_is_paid(ct)
+         GROUP BY (contract)
+        $$;
+
+       CREATE OR REPLACE FUNCTION contract_loss_fund_balance(contract)
+        RETURNS numeric(10,2) LANGUAGE SQL AS $$
+        SELECT contract_loss_fund_balance($1.contract_id)
+        $$;
+
+       
+      CREATE OR REPLACE FUNCTION contract_loss_fund_balance(claim)
+       RETURNS numeric(10,2) LANGUAGE SQL AS $$
+       SELECT contract_loss_fund_balance((contract).contract_id)
+        FROM claim_view WHERE claim_id = $1.claim_id
+       $$;
+
+    #+end_src
+
+    #+RESULTS:
+    | ALTER TABLE     |
+    |-----------------|
+    | CREATE FUNCTION |
+    | CREATE FUNCTION |
+    | CREATE FUNCTION |
+    
+#+begin_src sql
+ EXPLAIN ANALYSE SELECT contract_loss_fund_balance((claim)) FROM claim_view WHERE claim_id = 1234;
+#+end_src
+    #+RESULTS:
+    | QUERY PLAN                                                                                                                      |
+    |---------------------------------------------------------------------------------------------------------------------------------|
+    | Nested Loop  (cost=1.16..17.48 rows=1 width=32) (actual time=7.145..7.147 rows=1 loops=1)                                       |
+    | ->  Nested Loop  (cost=0.88..16.93 rows=1 width=459) (actual time=0.587..0.588 rows=1 loops=1)                                  |
+    | ->  Nested Loop  (cost=0.58..16.62 rows=1 width=463) (actual time=0.580..0.581 rows=1 loops=1)                                  |
+    | ->  Index Scan using claim_pkey on claim  (cost=0.29..8.31 rows=1 width=459) (actual time=0.570..0.571 rows=1 loops=1)          |
+    | Index Cond: (claim_id = 1234)                                                                                                   |
+    | ->  Index Scan using risk_pkey on risk  (cost=0.29..8.31 rows=1 width=12) (actual time=0.007..0.007 rows=1 loops=1)             |
+    | Index Cond: (risk_id = claim.risk_id)                                                                                           |
+    | ->  Index Only Scan using policy_pkey on policy  (cost=0.29..0.31 rows=1 width=4) (actual time=0.006..0.006 rows=1 loops=1)     |
+    | Index Cond: (policy_id = risk.policy_id)                                                                                        |
+    | Heap Fetches: 0                                                                                                                 |
+    | ->  Index Only Scan using contract_pkey on contract  (cost=0.28..0.30 rows=1 width=4) (actual time=0.006..0.006 rows=1 loops=1) |
+    | Index Cond: (contract_id = risk.contract_id)                                                                                    |
+    | Heap Fetches: 0                                                                                                                 |
+    | Planning Time: 22.605 ms                                                                                                        |
+    | Execution Time: 8.032 ms                                                                                                        |
+
+    
+* Database
+
+#+begin_src sql :output verbatim :wrap src sql
+   \d contract 
+#+end_src
+
+#+RESULTS:
+#+begin_src sql
+| Column                                                                                                                                                 | Type    | Collation | Nullable | Default                                             |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------+---------+-----------+----------+-----------------------------------------------------|
+| contract_id                                                                                                                                            | integer |           | not null | nextval('contract_CONTRACT_ID_seq'::text::regclass) |
+| contract_number                                                                                                                                        | text    |           |          |                                                     |
+| agency_id                                                                                                                                              | integer |           |          |                                                     |
+| insurance_company_id                                                                                                                                   | integer |           |          |                                                     |
+| effective_date                                                                                                                                         | date    |           |          | now()                                               |
+| expiry_date                                                                                                                                            | date    |           |          | (now() + '1 year'::interval)                        |
+| syndicate_id                                                                                                                                           | integer |           |          |                                                     |
+| london_broker_id                                                                                                                                       | integer |           |          |                                                     |
+| syndicate_number                                                                                                                                       | text    |           |          |                                                     |
+| year_of_account                                                                                                                                        | date    |           |          |                                                     |
+| Indexes:                                                                                                                                               |         |           |          |                                                     |
+| "contract_pkey" PRIMARY KEY, btree (contract_id)                                                                                                       |         |           |          |                                                     |
+| "contract_agent" btree (agency_id)                                                                                                                     |         |           |          |                                                     |
+| "contract_contract_number_trgm_idx" gist (contract_number gist_trgm_ops)                                                                               |         |           |          |                                                     |
+| "contract_number" btree (contract_number)                                                                                                              |         |           |          |                                                     |
+| Check constraints:                                                                                                                                     |         |           |          |                                                     |
+| "Valid Characters in Contract Number" CHECK (contract_number !~ '[^A-Za-z0-9 \-/–_(),&.]'::text)                                                       |         |           |          |                                                     |
+| Foreign-key constraints:                                                                                                                               |         |           |          |                                                     |
+| "$1" FOREIGN KEY (agency_id) REFERENCES person(person_id)                                                                                              |         |           |          |                                                     |
+| "$2" FOREIGN KEY (insurance_company_id) REFERENCES person(person_id)                                                                                   |         |           |          |                                                     |
+| "contract_london_broker_id_fkey" FOREIGN KEY (london_broker_id) REFERENCES person(person_id)                                                           |         |           |          |                                                     |
+| "contract_syndicate_id_fkey" FOREIGN KEY (syndicate_id) REFERENCES person(person_id)                                                                   |         |           |          |                                                     |
+| Referenced by:                                                                                                                                         |         |           |          |                                                     |
+| TABLE "app_user_contract" CONSTRAINT "$2" FOREIGN KEY (contract_id) REFERENCES contract(contract_id)                                                   |         |           |          |                                                     |
+| TABLE "contract_authority" CONSTRAINT "contract_authority_contract_id_fkey" FOREIGN KEY (contract_id) REFERENCES contract(contract_id)                 |         |           |          |                                                     |
+| TABLE "crawford_contract" CONSTRAINT "crawford_contract_contract_id_fkey" FOREIGN KEY (contract_id) REFERENCES contract(contract_id)                   |         |           |          |                                                     |
+| TABLE "lineage_contract" CONSTRAINT "lineage_contract_contract_id_fkey" FOREIGN KEY (contract_id) REFERENCES contract(contract_id)                     |         |           |          |                                                     |
+| TABLE "read_only_contract" CONSTRAINT "read_only_contract_contract_id_fkey" FOREIGN KEY (contract_id) REFERENCES contract(contract_id)                 |         |           |          |                                                     |
+| TABLE "read_only_contract_list" CONSTRAINT "read_only_contract_list_contract_id_fkey" FOREIGN KEY (contract_id) REFERENCES contract(contract_id)       |         |           |          |                                                     |
+| TABLE "risk" CONSTRAINT "risk_contract_id_fkey" FOREIGN KEY (contract_id) REFERENCES contract(contract_id)                                             |         |           |          |                                                     |
+| Policies:                                                                                                                                              |         |           |          |                                                     |
+| POLICY "global_read_access"                                                                                                                            |         |           |          |                                                     |
+| USING ("user".can_read_contract((CURRENT_USER)::text, contract.*))                                                                                     |         |           |          |                                                     |
+| Triggers:                                                                                                                                              |         |           |          |                                                     |
+| contract_term_fits_all_policies AFTER UPDATE ON contract DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION contract_term_fits_all_policies() |         |           |          |                                                     |
+| hstore_row_history AFTER INSERT OR DELETE OR UPDATE ON contract FOR EACH ROW EXECUTE FUNCTION hstore_row_history()                                     |         |           |          |                                                     |
+| record_movement AFTER INSERT OR DELETE OR UPDATE ON contract FOR EACH ROW EXECUTE FUNCTION record_movement('contract_id')                              |         |           |          |                                                     |
+| z_update_agency_permissions AFTER INSERT OR DELETE OR UPDATE ON contract FOR EACH ROW EXECUTE FUNCTION update_agency_permissions()                     |         |           |          |                                                     |
+#+end_src
