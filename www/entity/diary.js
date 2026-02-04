@@ -17,7 +17,7 @@ Diary.ensure = function (obj) {
 Diary.prototype.upsert = function () {
     return fetch(this.pathExpand('diary.ss?upsert'), {
 	method: 'POST',
-	body: JSON.stringify(entry),
+	body: JSON.stringify(this.entry),
 	headers: {
 	    'Content-Type': 'application/json'
 	}
@@ -62,179 +62,217 @@ Diary.prototype.editor = function () {
 globalThis._debug_ = globalThis._debug_ || {}
 
 function DiaryTable(e) {
-    const self = this,
-	  selector = this.selectUser() && this._selectUser;
-    Object.assign(this, {
+  const self = this,
+		selector = this.selectUser() && this._selectUser;
+  Object.assign(this, {
 	e
-    })
-    e.innerHTML = this.tableHTML;
+  })
+  e.innerHTML = this.tableHTML;
 
-    this.initModal()
-     this.pending = true;
-    this.finished = false;
+  this.initModal()
+  this.pending = true;
+  this.finished = false;
+  this.selected = [];
 
-    selector.promise.then(_ => {
+  selector.promise.then(_ => {
 
 	this.datatable = new DataTable(e.querySelector('table'), {
-            initComplete: function() {
-                self.filterSelectUser()
-		   for (const c of document.querySelector('.dt-layout-row .dt-layout-cell').children) {
-		       c.style.display = 'inline-block';
-		       c.style.paddingLeft = '0.5em'
-		   }
-	       },
-	    ajax: {
+      initComplete: function() {
+        self.filterSelectUser()
+		for (const c of document.querySelector('.dt-layout-row .dt-layout-cell').children) {
+		  c.style.display = 'inline-block';
+		  //c.style.paddingLeft = '0.5em'
+		}
+	  },
+	  ajax: {
 		url: this.pathExpand('diary.ss'),
 		contentType: 'application/json',
 		type: 'POST',
 		timeout: 60000,
 		data: function (d) {
-                    const user_id = self._selectUser.element.value,
-			  findu = d.search.fixed.find(n => n.name == 'user_id')
-		    // this.search.fixed('user_id', user_id || null)
-		    if (findu) {
+          const user_id = self._selectUser.element.value,
+				findu = d.search.fixed.find(n => n.name == 'user_id')
+		  // this.search.fixed('user_id', user_id || null)
+		  if (findu) {
 			findu.term = user_id || null
-		    } else {
+		  } else {
 			if (user_id) {
-			    d.search.fixed.push({name: 'user_id', term: user_id})
+			  d.search.fixed.push({name: 'user_id', term: user_id})
 			}
-		    }
-		    
+		  }
+		  
 
-		    const data = Object.assign({rowType: 'object'}, d)
-                    console.log('Select?', d.search.fixed.find(n => n.name == 'user_id'));
-		    return JSON.stringify(data);
+		  const data = Object.assign({rowType: 'object'}, d)
+          console.log('Select?', d.search.fixed.find(n => n.name == 'user_id'));
+		  return JSON.stringify(data);
 		}
-        },
-            serverSide: true,
-	    processing: true,
-            order: {
+      },
+      serverSide: true,
+	  processing: true,
+      order: {
 		name: 'date',
 		dir: 'asc'
-	    },
-            columns: [
+	  },
+      columns: [
+		{
+		  name: "closed",
+		  data: {
+			"_": "closed",
+			display(row, type, set, meta) {
+			  return self.checkbox(row, meta)
+			}
+		  }
+		  
+		},
+
 		
    		{
-		    name: "note",
-		    data: { "_": "note",
-			    display(row, t, s, meta) {
-				const pre = self.create('pre')
-				pre.textContent = row.note
-                                pre.setAttribute(
-				    'style',
-				    "overflow-y:scroll; max-width:80ch; max-height:80px; white-space:pre-wrap;")
-				return self.wrapEditSelector(pre, row, meta, 'note')
-			    }
-			  }
+		  name: "note",
+		  data: { "_": "note",
+			      display(row, t, s, meta) {
+					const pre = self.create('pre')
+					pre.textContent = row.note
+                    pre.setAttribute(
+				      'style',
+				      "overflow-y:scroll; max-width:80ch; max-height:80px; white-space:pre-wrap;")
+					return self.wrapEditSelector(pre, row, meta, 'note')
+			      }
+				}
 		},
    		// { name: "date", data: "date" },
   		{
-		    name: "date",
-		    data: {
+		  name: "date",
+		  data: {
 			_: "date",
 			display(row, t, s, meta) {
-			    const div = self.create('div'),
-				  now = luxon.DateTime.local(),
-				  deadl = luxon.DateTime.local().plus({ week: 1}),
-				  date = luxon.DateTime.fromISO(row.date)
-			    if (row.closed) {
+			  const div = self.create('div'),
+					now = luxon.DateTime.local(),
+					deadl = luxon.DateTime.local().plus({ week: 1}),
+					date = luxon.DateTime.fromISO(row.date)
+			  if (row.closed) {
 				div.classList.add('uk-alert-success')
-			    } else if (date > deadl) {
+			  } else if (date > deadl) {
 				div.classList.add('uk-alert-primary')
-			    } else if (date > now) {
+			  } else if (date > now) {
 				div.classList.add('uk-alert-warning')
-			    } else {
+			  } else {
 				div.classList.add('uk-alert-danger')
-			    }
-			    div.innerHTML = row.date;
-                            return self.wrapEditSelector(div,row, meta, 'date')
-			    
+			  }
+			  div.innerHTML = row.date;
+              return self.wrapEditSelector(div,row, meta, 'date')
+			  
 			}
-		    }
+		  }
 		},
   		{
-		    name: "closed",
-		    data: {
-			"_": "closed",
-			display(row, type, set, meta) {
-			    return self.checkbox(row, meta)
-			}
-		    }
-		    
-		},
-		{
-                    name: "claim_id",
-		    data: function(row, type, set, meta) {
+          name: "claim_id",
+		  data: function(row, type, set, meta) {
 			// console.log("row", row)
 		    const lnk = ((a = document.createElement('a')) => {
-			a.setAttribute('href', '/ecm/claim/' + row.claim_id)
-			a.textContent = row.claim_id
-                        return a;
+			  a.setAttribute('href', '/ecm/claim/' + row.claim_id)
+			  a.textContent = row.claim_id
+              return a;
 		    })()
 		    return lnk
 		    
-		}
+		  }
 	    },
 	    { name: "status", data: "status" },
 	    {
-		name: "insured_name",
-	      	data: function(row, type, set, meta) {
+		  name: "insured_name",
+	      data: function(row, type, set, meta) {
 		    const lnk = ((a = document.createElement('a')) => {
-			a.setAttribute('href', '/ecm/view?person=' + row.insured_id)
-			a.textContent = row.insured_name
-                        return a;
+			  a.setAttribute('href', '/ecm/view?person=' + row.insured_id)
+			  a.textContent = row.insured_name
+              return a;
 		    })()
 		    return lnk
 		    
-		}
-	    },
-         {
-		name: "contract_number",
-	      	data: function(row, type, set, meta) {
-		    const lnk = ((a = document.createElement('a')) => {
-			a.setAttribute('href', '/ecm/view?contract=' + row.contract_id)
-			a.textContent = row.contract_number
-                        return a;
-		    })()
-		    return lnk
-		    
-		}
+		  }
 	    },
         {
-		name: "user_name",
-	      	data: function(row, type, set, meta) {
+		  name: "contract_number",
+	      data: function(row, type, set, meta) {
 		    const lnk = ((a = document.createElement('a')) => {
-			a.setAttribute('href', '/ecm/view?app-user=' + row.user_id)
-			a.textContent = row.user_name
-                        return a;
+			  a.setAttribute('href', '/ecm/view?contract=' + row.contract_id)
+			  a.textContent = row.contract_number
+              return a;
 		    })()
 		    return lnk
 		    
-		}
+		  }
+	    },
+        {
+		  name: "user_name",
+	      data: function(row, type, set, meta) {
+		    const lnk = ((a = document.createElement('a')) => {
+			  a.setAttribute('href', '/ecm/view?app-user=' + row.user_id)
+			  a.textContent = row.user_name
+              return a;
+		    })()
+		    return lnk
+		    
+		  }
 	    },
 
 
-	],
-	layout: {
-            topStart: ['pageLength', this.filterButtons(), {buttons: ['colvis'] }],
+	  ],
+	  layout: {
+        topStart: [
+		  this.markAsFinished(),
+		  'pageLength',
+		  this.filterButtons()
+		],
 	    topEnd: this.modal
-	}
+	  }
 	})
 
-    })
-    
-    globalThis._debug_.DT = this;
-    return this
+  })
+  
+  globalThis._debug_.DT = this;
+  return this
 }
 
 Object.setPrototypeOf(DiaryTable.prototype, EcmElement.prototype);
 DiaryTable.prototype.currentScript = document.currentScript;
 EcmSPA.prototype.initFunctions.DiaryTable = function (el) {
-      this.querySelectorAll(el, '[data-diary-table]')
+  this.querySelectorAll(el, '[data-diary-table]')
   	.forEach(e => new DiaryTable(e))
- }
+}
 
 
+DiaryTable.prototype.markAsFinished = function() {
+  const btn = document.createElement('button'),
+		prog = document.createElement('div')
+  prog.setAttribute('style', 'width:100%;height:100%;margin:auto')
+  prog.innerHTML= '<div uk-spinner="ratio: 4"></div>'
+  
+  btn.className = 'uk-button uk-button-default'
+  btn.innerHTML = "Change Status"
+  btn.setAttribute('hidden', '')
+  this.doneButton = btn;
+
+  btn.onclick = () => {
+	console.debug('Upserting', this.selected)
+	document.body.append(prog)
+	const waiton = Promise.all(this.selected.map(d => d.upsert()))
+	btn.setAttribute('hidden', '')
+	this.e.setAttribute('hidden', '')
+	this.selected = []
+	waiton.then(_ => {
+	  this.datatable.ajax.reload(_=>{
+		this.e.removeAttribute('hidden', '')
+		prog.remove()
+	  })
+	  
+	}).catch(e => {
+	  console.error(e); alert("Error with Diary Server")
+	  this.e.removeAttribute('hidden')
+	})
+	 
+  }
+  return btn;
+}
 DiaryTable.prototype.tableHTML =`
    <style>
    .dataTables_processing {
@@ -249,9 +287,9 @@ DiaryTable.prototype.tableHTML =`
     <table class="uk-table uk-table-small uk-table-divider display compact">
      <thead>
          <tr>
+             <th>Finished</th>
              <th>Note</th>
              <th>Diary Date</th>
-             <th>Finished</th>
              <th>Claim</th>
              <th>Status</th>
              <th>Insured</th>
@@ -351,7 +389,7 @@ DiaryTable.prototype.editModal = function (diary, meta, select) {
     // Any past even listeners? No more!
     old_btn.parentNode.replaceChild(btn, old_btn);
 
-   console.log("b", btn, old_btn)
+   // console.log("b", btn, old_btn)
     
     btn.addEventListener("click", (event) => {
         // console.log('Saving', meta.row, d.entry_changes)
@@ -432,11 +470,32 @@ DiaryTable.prototype.checkbox = function (diary, meta) {
 
     inp.addEventListener("change", (event) => {
 	const checked = event.target.checked,
-	      d = Diary.ensure(Object.assign({}, diary, { closed: checked }))
-	
-        event.target.checked = !checked
-        this.editModal(d, meta);
-        
+	      d = Diary.ensure(Object.assign({}, diary, { closed: checked })),
+		  changed = diary.closed !== checked,
+		  dbtn = this.doneButton
+
+	  if (changed) {
+		diary.closed = checked
+		this.selected.push(d)
+		//console.debug('SELECTED', this.selected)
+	  } else {
+		this.selected = this.selected.filter(sd => d.entry.diary_id !== sd.entry.diary_id)
+		//console.debug('SELECTED', this.selected, d.entry.diary_id)
+	  }
+	  // console.debug(this)
+
+      if (this.selected.length == 0) {
+	  
+		dbtn.setAttribute('hidden', '')
+		dbtn.classList.add('uk-button-default')
+		dbtn.classList.remove('uk-button-primary')
+		
+	  } else {
+
+		this.doneButton.removeAttribute('hidden')
+		dbtn.classList.remove('uk-button-default')
+		dbtn.classList.add('uk-button-primary')
+	  }
 
     });
     }
